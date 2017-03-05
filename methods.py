@@ -12,29 +12,37 @@ def load_calibration():
     print("Calibration Loaded")
     return calib[0], calib[1]
 
+#load calibration
 mtx, dist = load_calibration()
 
-#load calibration
 img_size = (1280, 720)
-src = np.float32([[  585.0-10,  460.0],
-           [ 0.0,  720.0],
-           [ 1280.0,  720.0],
-           [ 695.0+10,  460.0]])
 
-dst = np.float32([[320, 0], 
-                  [320, 720],
-                  [960, 720], 
-                    [960, 0]])
-        
-M = cv2.getPerspectiveTransform(src, dst)
-Minv = cv2.getPerspectiveTransform(dst, src)
+def load_transforms():
+    #load perspective vars
+    src = np.float32([[  585.0-10,  460.0],
+               [ 0.0,  720.0],
+               [ 1280.0,  720.0],
+               [ 695.0+10,  460.0]])
+
+    dst = np.float32([[320, 0], 
+                      [320, 720],
+                      [960, 720], 
+                        [960, 0]])
+            
+    M = cv2.getPerspectiveTransform(src, dst)
+    Minv = cv2.getPerspectiveTransform(dst, src)
+    return M, Minv
+
+M, Minv = load_transforms()
 
 def fast_unwarp_lane(img):
+    global dist, mtx, img_size
     undist = cv2.undistort(img, mtx, dist)
     out = cv2.warpPerspective(undist, M, img_size, flags=cv2.INTER_LINEAR)
     return out
 
 def fast_warp_lane(lane):
+    global Minv, img_size
     unwarped = cv2.warpPerspective(lane, Minv, img_size, flags=cv2.INTER_LINEAR)
     return unwarped
 
@@ -216,14 +224,5 @@ def lane_boxes(img):
     out_img[nonzeroy[left_lane_inds], nonzerox[left_lane_inds]] = [255, 0, 0]
     out_img[nonzeroy[right_lane_inds], nonzerox[right_lane_inds]] = [0, 0, 255]
     return out_img
-
-if __name__ == "__main__":
-    inp = "project_video"
-
-    process_video(infile=inp + ".mp4", 
-                  outfile=inp + "_px_3.mp4", 
-                  method=lane_boxes)
-
-
 
 

@@ -1,26 +1,20 @@
-from main import *
-import glob
+from methods import *
 import numpy as np
-import cv2
-import glob
 import matplotlib.pyplot as plt
-import matplotlib.image as mpimg
-import pickle
-import matplotlib.image as mpimg
 from moviepy.editor import VideoFileClip
-from tqdm import tqdm
 
+def thresh(img):
+    res = apply_thresholds(img)
+
+    binary = np.dstack((res*255, res*255, res*255))
+    binary_warped = fast_unwarp_lane(binary)
+    return binary_warped
+
+    
 if __name__ == "__main__":
-    files = glob.glob("snapshots/*.png")
+    #inp = "project_small"
+    inp = "project_video"
 
-    images = []
-    for fn in files:
-        img = mpimg.imread(fn)
-
-        out = apply_thresholds(img)
-        rgb = np.dstack((out*255, out*255, out*255))
-        uw = fast_unwarp_lane(rgb)
-        images.append([img, out, uw])
-
-    plot_images(images)
-
+    process_video(infile=inp + ".mp4", 
+              outfile=inp + "_threshold.mp4", 
+              method=thresh)
