@@ -132,6 +132,7 @@ def apply_thresholds(img):
     stage_1 = apply_stage_1(img_hsv)
     stage_2 = hls_select(img_hsv)
     
+    # hsv is generally better overall. x/y only on certain occasions.
     res = (stage_1 * 72) + (stage_2 * 182) # lot of trials, got this. hsv is prominent, but xy sobel is when hsv is not working.
     
     binary_out = np.zeros_like(res)
@@ -140,11 +141,9 @@ def apply_thresholds(img):
 
 def lane_boxes(img):
     res = apply_thresholds(img)
-    res_rgb = np.dstack((res, res, res))
+    res_rgb = np.dstack((res*255, res*255, res*255))
     lane = fast_unwarp_lane(res_rgb)
     
-    # inference. looks like both red, green together do a good job of identifying lanes.
-    # hsv is generally better overall. x/y only on certain occasions.
     binary_warped = lane[:,:,2]
 
     # Assuming you have created a warped binary image called "binary_warped"
