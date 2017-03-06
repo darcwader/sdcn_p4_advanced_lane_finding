@@ -25,5 +25,5 @@ if __name__ == "__main__":
     #inp = "project_video"
 
     process_video(infile=inp + ".mp4", 
-            outfile=inp + "_lane.mp4", 
+            outfile=inp + "_final.mp4", 
             method=frame_convolution)

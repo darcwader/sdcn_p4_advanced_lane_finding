@@ -15,6 +15,8 @@ class Lane:
     left_lane_inds = []
     right_lane_inds = []
 
+    
+
     def sliding_window(self, img):
         res = apply_thresholds(img)
         res_rgb = np.dstack((res*255, res*255, res*255))
@@ -187,3 +189,23 @@ class Lane:
         cv2.putText(img, "left:{0:.2f}m".format(left_curverad), (100,300), cv2.FONT_HERSHEY_PLAIN, 2, 255)
         cv2.putText(img, "right:{0:.2f}m".format(right_curverad), (100,350), cv2.FONT_HERSHEY_PLAIN, 2, 255)
         # Example values: 632.1 m    626.2 m
+
+    def projection(self, img):
+        warped = img[:,:,0]
+        # Create an image to draw the lines on
+        warp_zero = np.zeros_like(warped).astype(np.uint8)
+        color_warp = np.dstack((warp_zero, warp_zero, warp_zero))
+
+        # Recast the x and y points into usable format for cv2.fillPoly()
+        ploty = np.linspace(0, warped.shape[0]-1, warped.shape[0] )
+        left_fitx = self.left_fit[0]*ploty**2 + self.left_fit[1]*ploty + self.left_fit[2]
+        right_fitx = self.right_fit[0]*ploty**2 + self.right_fit[1]*ploty + self.right_fit[2]
+
+        pts_left = np.array([np.transpose(np.vstack([left_fitx, ploty]))])
+        pts_right = np.array([np.flipud(np.transpose(np.vstack([right_fitx, ploty])))])
+        pts = np.hstack((pts_left, pts_right))
+
+        # Draw the lane onto the warped blank image
+        cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
+        return color_warp
+        

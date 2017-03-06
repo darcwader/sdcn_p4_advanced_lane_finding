@@ -4,22 +4,19 @@ from methods_sliding_window import *
 l = Lane()
 
 def frame(img):
-    binary_warped = l.sliding_window(img)
+    if l.left_fit == None:
+        binary_warped = l.sliding_window(img)
+        binary_filled = binary_warped
+    else:
+        binary_warped = l.sliding_window(img)
+        binary_filled = l.projection(binary_warped)
 
-    warp = fast_warp_lane(binary_warped)
+    warp = fast_warp_lane(binary_filled)
 
     out = cv2.addWeighted(img, 1.0, warp, 0.5, 0)
     l.curvature(out)
     return out
 
-def frame_convolution(img):
-    res = apply_thresholds(img)
-    res_rgb = np.dstack((res*255, res*255, res*255))
-    lane = fast_unwarp_lane(res_rgb)
-    unwarp = convolution(lane[:,:,0])
-    warp = fast_warp_lane(unwarp)	
-
-    out = cv2.addWeighted(img, 1.0, warp, 0.5, 0)
 
 if __name__ == "__main__":
     #inp = "project_small"
