@@ -19,8 +19,8 @@ def frame(img):
 
 
 if __name__ == "__main__":
-    #inp = "project_small"
-    inp = "project_video"
+    inp = "project_small"
+    #inp = "project_video"
 
     process_video(infile=inp + ".mp4", 
             outfile=inp + "_curvature.mp4", 

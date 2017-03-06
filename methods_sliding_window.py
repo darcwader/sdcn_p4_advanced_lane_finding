@@ -10,10 +10,54 @@ from tqdm import tqdm
 from methods import *
 
 class Lane:
-    left_fit = None
-    right_fit = None
-    left_lane_inds = []
-    right_lane_inds = []
+
+    def __init__(self):
+        self.left_fit = None
+        self.right_fit = None
+        self.left_lane_inds = []
+        self.right_lane_inds = []
+
+        # was the line detected in the last iteration?
+        self.l_detected = False  
+        # x values of the last n fits of the line
+        self.l_recent_xfitted = [] 
+        #average x values of the fitted line over the last n iterations
+        self.l_bestx = None     
+        #polynomial coefficients averaged over the last n iterations
+        self.l_best_fit = None  
+        #polynomial coefficients for the most recent fit
+        self.l_current_fit = [np.array([False])]  
+        #radius of curvature of the line in some units
+        self.l_radius_of_curvature = None 
+        #distance in meters of vehicle center from the line
+        self.l_line_base_pos = None 
+        #difference in fit coefficients between last and new fits
+        self.l_diffs = np.array([0,0,0], dtype='float') 
+        #x values for detected line pixels
+        self.l_allx = None  
+        #y values for detected line pixels
+        self.l_ally = None
+
+        # was the line detected in the last iteration?
+        self.r_detected = False  
+        # x values of the last n fits of the line
+        self.r_recent_xfitted = [] 
+        #average x values of the fitted line over the last n iterations
+        self.r_bestx = None     
+        #polynomial coefficients averaged over the last n iterations
+        self.r_best_fit = None  
+        #polynomial coefficients for the most recent fit
+        self.r_current_fit = [np.array([False])]  
+        #radius of curvature of the line in some units
+        self.r_radius_of_curvature = None 
+        #distance in meters of vehicle center from the line
+        self.r_line_base_pos = None 
+        #difference in fit coefficients between last and new fits
+        self.r_diffs = np.array([0,0,0], dtype='float') 
+        #x values for detected line pixels
+        self.r_allx = None  
+        #y values for detected line pixels
+        self.r_ally = None
 
     
 
@@ -127,8 +171,28 @@ class Lane:
         rightx = nonzerox[self.right_lane_inds]
         righty = nonzeroy[self.right_lane_inds]
         # Fit a second order polynomial to each
-        self.left_fit = np.polyfit(lefty, leftx, 2)
-        self.right_fit = np.polyfit(righty, rightx, 2)
+        left_fitx = np.polyfit(lefty, leftx, 2)
+        right_fitx = np.polyfit(righty, rightx, 2)
+
+        #compute diffs and assign to self
+        self.l_diffs = self.left_fit - left_fitx
+        self.r_diffs = self.right_fit - right_fitx
+
+
+        #check error if its too much, then drop and take last 5 mean.
+        #if np.mean(self.l_diffs**2) < 50:
+        self.left_fit = left_fitx
+
+        if np.mean(self.r_diffs**2) < 50 and len(self.r_recent_xfitted) > 5:
+            self.r_detected = True
+            self.r_recent_xfitted.append(right_fitx) 
+            print(self.r_recent_xfitted)
+            self.r_recent_xfitted = self.r_recent_xfitted[1:]
+            print(self.r_recent_xfitted)
+            self.right_fit = np.average(np.array(self.r_recent_xfitted), axis=0)
+        elif len(self.r_recent_xfitted) < 5:
+            self.r_recent_xfitted.append(right_fitx) 
+            self.right_fit = right_fitx
 
         # Create an image to draw on and an image to show the selection window
         out_img = np.dstack((binary_warped, binary_warped, binary_warped))*255
@@ -154,7 +218,6 @@ class Lane:
         cv2.fillPoly(window_img, np.int_([left_line_pts]), (0,255, 0))
         cv2.fillPoly(window_img, np.int_([right_line_pts]), (0,255, 0))
         result = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
-
 
         self.curvature(ploty)
 
@@ -189,6 +252,10 @@ class Lane:
         cv2.putText(img, "left:{0:.2f}m".format(left_curverad), (100,300), cv2.FONT_HERSHEY_PLAIN, 2, 255)
         cv2.putText(img, "right:{0:.2f}m".format(right_curverad), (100,350), cv2.FONT_HERSHEY_PLAIN, 2, 255)
         # Example values: 632.1 m    626.2 m
+
+        cv2.putText(img, "ldiff:{0:.2f}".format(np.mean(self.l_diffs**2)), (100,400), cv2.FONT_HERSHEY_PLAIN, 2, 255)
+        cv2.putText(img, "rdiff:{0:.2f}".format(np.mean(self.r_diffs**2)), (100,450), cv2.FONT_HERSHEY_PLAIN, 2, 255)
+
 
     def projection(self, img):
         warped = img[:,:,0]
