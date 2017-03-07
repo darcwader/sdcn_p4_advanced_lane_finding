@@ -67,6 +67,7 @@ def plot_images(images):
 
 def plot_images_save(fname, images):
     """ Helper routine which plots all images passed as array in a single row """
+    print(len(images))
     m = len(images)
     n = len(images[0])
     

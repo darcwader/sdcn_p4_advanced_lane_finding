@@ -172,6 +172,9 @@ class Lane:
         # Create an image to draw on and an image to show the selection window
         out_img = np.dstack((binary_warped, binary_warped, binary_warped))*255
         window_img = np.zeros_like(out_img)
+        nonzero = binary_warped.nonzero()
+        nonzeroy = np.array(nonzero[0])
+        nonzerox = np.array(nonzero[1])
         # Color in left and right line pixels
         out_img[nonzeroy[self.left.lane_inds], nonzerox[self.left.lane_inds]] = [255, 0, 0]
         out_img[nonzeroy[self.right.lane_inds], nonzerox[self.right.lane_inds]] = [0, 0, 255]
