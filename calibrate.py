@@ -34,7 +34,7 @@ for idx, fname in enumerate(images):
         objpoints.append(objp)
         imgpoints.append(corners)
 
-
+        #draw the chessboard corners and plot to show
         cv2.drawChessboardCorners(img, (nx,ny), corners, ret)
         plt.imshow(img)
         plt.show()
@@ -45,6 +45,6 @@ def save_calibration(objpoints, imgpoints):
     calib = [mtx, dist]
     pickle.dump(calib, open("calibration.pkl", "wb"))
 
-
+# save the calibration to load in successive runs, as this calibration is slow.
 save_calibration(objpoints, imgpoints)
 print("Calibration Saved")

@@ -65,6 +65,20 @@ def plot_images(images):
             axes[ix][iy].axis('off')
     plt.show()
 
+def plot_images_save(fname, images):
+    """ Helper routine which plots all images passed as array in a single row """
+    m = len(images)
+    n = len(images[0])
+    
+    fig, axes = plt.subplots(m, n, figsize=(10*n, 10*m))
+    if m == 1:
+        axes = [axes]
+    fig.tight_layout()
+    for ix in range(m):
+        for iy in range(n):
+            axes[ix][iy].imshow(images[ix][iy], cmap='gray')
+            axes[ix][iy].axis('off')
+    fig.savefig(fname)
 
 def abs_sobel_thresh(img_gray, orient='x', ksize=3,  thresh=(20,100)):    
     sobel = None
