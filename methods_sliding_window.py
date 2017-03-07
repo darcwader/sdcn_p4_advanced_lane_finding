@@ -26,7 +26,8 @@ class Lane:
         #polynomial coefficients averaged over the last n iterations
         self.l_best_fit = None  
         #polynomial coefficients for the most recent fit
-        self.l_current_fit = [np.array([False])]  
+        self.l_current_fit = [np.array([False])]
+        self.l_previous_fit = []
         #radius of curvature of the line in some units
         self.l_radius_of_curvature = None 
         #distance in meters of vehicle center from the line
@@ -47,7 +48,8 @@ class Lane:
         #polynomial coefficients averaged over the last n iterations
         self.r_best_fit = None  
         #polynomial coefficients for the most recent fit
-        self.r_current_fit = [np.array([False])]  
+        self.r_current_fit = [np.array([False])]
+        self.r_previous_fit = []
         #radius of curvature of the line in some units
         self.r_radius_of_curvature = None 
         #distance in meters of vehicle center from the line
@@ -171,65 +173,70 @@ class Lane:
         rightx = nonzerox[self.right_lane_inds]
         righty = nonzeroy[self.right_lane_inds]
         # Fit a second order polynomial to each
-        left_fitx = np.polyfit(lefty, leftx, 2)
-        right_fitx = np.polyfit(righty, rightx, 2)
+        self.l_current_fit = np.polyfit(lefty, leftx, 2)
+        self.r_current_fit = np.polyfit(righty, rightx, 2)
 
-        #compute diffs and assign to self
-        self.l_diffs = self.left_fit - left_fitx
-        self.r_diffs = self.right_fit - right_fitx
+        result = np.dstack((binary_warped, binary_warped, binary_warped))*255
+        if False:
+            # Create an image to draw on and an image to show the selection window
+            out_img = np.dstack((binary_warped, binary_warped, binary_warped))*255
+            window_img = np.zeros_like(out_img)
+            # Color in left and right line pixels
+            out_img[nonzeroy[self.left_lane_inds], nonzerox[self.left_lane_inds]] = [255, 0, 0]
+            out_img[nonzeroy[self.right_lane_inds], nonzerox[self.right_lane_inds]] = [0, 0, 255]
 
+            # Generate x and y values for plotting
+            ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
+            left_fitx = self.left_fit[0]*ploty**2 + self.left_fit[1]*ploty + self.left_fit[2]
+            right_fitx = self.right_fit[0]*ploty**2 + self.right_fit[1]*ploty + self.right_fit[2]
+            # Generate a polygon to illustrate the search window area
+            # And recast the x and y points into usable format for cv2.fillPoly()
+            left_line_window1 = np.array([np.transpose(np.vstack([left_fitx-margin, ploty]))])
+            left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fitx+margin, ploty])))])
+            left_line_pts = np.hstack((left_line_window1, left_line_window2))
+            right_line_window1 = np.array([np.transpose(np.vstack([right_fitx-margin, ploty]))])
+            right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx+margin, ploty])))])
+            right_line_pts = np.hstack((right_line_window1, right_line_window2))
 
-        #check error if its too much, then drop and take last 5 mean.
-        #if np.mean(self.l_diffs**2) < 50:
-        self.left_fit = left_fitx
-
-        if np.mean(self.r_diffs**2) < 50 and len(self.r_recent_xfitted) > 5:
-            self.r_detected = True
-            self.r_recent_xfitted.append(right_fitx) 
-            print(self.r_recent_xfitted)
-            self.r_recent_xfitted = self.r_recent_xfitted[1:]
-            print(self.r_recent_xfitted)
-            self.right_fit = np.average(np.array(self.r_recent_xfitted), axis=0)
-        elif len(self.r_recent_xfitted) < 5:
-            self.r_recent_xfitted.append(right_fitx) 
-            self.right_fit = right_fitx
-
-        # Create an image to draw on and an image to show the selection window
-        out_img = np.dstack((binary_warped, binary_warped, binary_warped))*255
-        window_img = np.zeros_like(out_img)
-        # Color in left and right line pixels
-        out_img[nonzeroy[self.left_lane_inds], nonzerox[self.left_lane_inds]] = [255, 0, 0]
-        out_img[nonzeroy[self.right_lane_inds], nonzerox[self.right_lane_inds]] = [0, 0, 255]
-
-        # Generate x and y values for plotting
-        ploty = np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] )
-        left_fitx = self.left_fit[0]*ploty**2 + self.left_fit[1]*ploty + self.left_fit[2]
-        right_fitx = self.right_fit[0]*ploty**2 + self.right_fit[1]*ploty + self.right_fit[2]
-        # Generate a polygon to illustrate the search window area
-        # And recast the x and y points into usable format for cv2.fillPoly()
-        left_line_window1 = np.array([np.transpose(np.vstack([left_fitx-margin, ploty]))])
-        left_line_window2 = np.array([np.flipud(np.transpose(np.vstack([left_fitx+margin, ploty])))])
-        left_line_pts = np.hstack((left_line_window1, left_line_window2))
-        right_line_window1 = np.array([np.transpose(np.vstack([right_fitx-margin, ploty]))])
-        right_line_window2 = np.array([np.flipud(np.transpose(np.vstack([right_fitx+margin, ploty])))])
-        right_line_pts = np.hstack((right_line_window1, right_line_window2))
-
-        # Draw the lane onto the warped blank image
-        cv2.fillPoly(window_img, np.int_([left_line_pts]), (0,255, 0))
-        cv2.fillPoly(window_img, np.int_([right_line_pts]), (0,255, 0))
-        result = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
-
-        self.curvature(ploty)
+            # Draw the lane onto the warped blank image
+            cv2.fillPoly(window_img, np.int_([left_line_pts]), (0,255, 0))
+            cv2.fillPoly(window_img, np.int_([right_line_pts]), (0,255, 0))
+            result = cv2.addWeighted(out_img, 1, window_img, 0.3, 0)
+        
+        self.process_fits()
+        
+        self.curvature(np.linspace(0, binary_warped.shape[0]-1, binary_warped.shape[0] ))
 
         return result
 
+    lcr_arr = [] #prevous curvatures. left curvature arr
+    rcr_arr = [] #right curvature arr
 
+    def process_fits(self):
+        last_n = 5
+        
+        self.l_previous_fit.append(self.l_current_fit)
+        if len(self.l_previous_fit) > last_n:
+            self.l_previous_fit = self.l_previous_fit[1:]
+        self.l_best_fit = np.average(self.l_previous_fit, axis=0)
+        
+        
+        self.r_previous_fit.append(self.r_current_fit)
+        if len(self.r_previous_fit) > last_n:
+            self.r_previous_fit = self.r_previous_fit[1:]
+        self.r_best_fit = np.average(self.r_previous_fit, axis=0)
+        
+        
+        self.left_fit = self.l_best_fit
+        self.right_fit = self.r_best_fit
+
+    
     def curvature(self, img):
         y_eval = np.max(img.shape[0]-1)
         left_curverad = ((1 + (2*self.left_fit[0]*y_eval + self.left_fit[1])**2)**1.5) / np.absolute(2*self.left_fit[0])
         right_curverad = ((1 + (2*self.right_fit[0]*y_eval + self.right_fit[1])**2)**1.5) / np.absolute(2*self.right_fit[0])
-        cv2.putText(img, "left:{0:.2f}".format(left_curverad), (100,100), cv2.FONT_HERSHEY_PLAIN,2, 255)
-        cv2.putText(img, "right:{0:.2f}".format(right_curverad), (100,150), cv2.FONT_HERSHEY_PLAIN,2, 255)
+        #cv2.putText(img, "left:{0:.2f}".format(left_curverad), (100,100), cv2.FONT_HERSHEY_PLAIN,2, 255)
+        #cv2.putText(img, "right:{0:.2f}".format(right_curverad), (100,150), cv2.FONT_HERSHEY_PLAIN,2, 255)
         #print(left_curverad, right_curverad)
 
 
@@ -249,12 +256,21 @@ class Lane:
         right_curverad = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])
         # Now our radius of curvature is in meters
         #print(left_curverad, 'm', right_curverad, 'm')
-        cv2.putText(img, "left:{0:.2f}m".format(left_curverad), (100,300), cv2.FONT_HERSHEY_PLAIN, 2, 255)
-        cv2.putText(img, "right:{0:.2f}m".format(right_curverad), (100,350), cv2.FONT_HERSHEY_PLAIN, 2, 255)
+        self.lcr_arr.append(left_curverad)
+        if len(self.lcr_arr) > 5:
+            self.lcr_arr = self.lcr_arr[1:]
+        
+        
+        self.rcr_arr.append(right_curverad)
+        if len(self.rcr_arr) > 5:
+            self.rcr_arr = self.rcr_arr[1:]
+        
+        cv2.putText(img, "left:{0:.2f}m".format(np.average(self.lcr_arr)), (100,300), cv2.FONT_HERSHEY_PLAIN, 2, 255)
+        cv2.putText(img, "right:{0:.2f}m".format(np.average(self.rcr_arr)), (100,350), cv2.FONT_HERSHEY_PLAIN, 2, 255)
         # Example values: 632.1 m    626.2 m
 
-        cv2.putText(img, "ldiff:{0:.2f}".format(np.mean(self.l_diffs**2)), (100,400), cv2.FONT_HERSHEY_PLAIN, 2, 255)
-        cv2.putText(img, "rdiff:{0:.2f}".format(np.mean(self.r_diffs**2)), (100,450), cv2.FONT_HERSHEY_PLAIN, 2, 255)
+#cv2.putText(img, "ldiff:{0:.2f}".format(np.mean(self.l_diffs**2)), (100,400), cv2.FONT_HERSHEY_PLAIN, 2, 255)
+#       cv2.putText(img, "rdiff:{0:.2f}".format(np.mean(self.r_diffs**2)), (100,450), cv2.FONT_HERSHEY_PLAIN, 2, 255)
 
 
     def projection(self, img):
@@ -273,6 +289,15 @@ class Lane:
         pts = np.hstack((pts_left, pts_right))
 
         # Draw the lane onto the warped blank image
-        cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
+        left_color = 1
+        right_color = 1
+        if np.mean(self.l_diffs[0]**2) > 50:
+            left_color = 1
+        
+        if np.mean(self.r_diffs[0]**2) > 50:
+            right_color = 1
+        
+
+        cv2.fillPoly(color_warp, np.int_([pts]), (left_color*255,255*left_color*right_color, 255*right_color))
         return color_warp
         
