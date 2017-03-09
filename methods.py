@@ -35,6 +35,10 @@ def load_transforms():
 
 M, Minv = load_transforms()
 
+def undistort(img):
+    undist = cv2.undistort(img, mtx, dist)
+    return undist
+
 def fast_unwarp_lane(img):
     global dist, mtx, img_size
     undist = cv2.undistort(img, mtx, dist)
@@ -116,7 +120,7 @@ def dir_thresh(gray, ksize=15, thresh=(0.0, np.pi/2)):
     binary_output[(abssobelxy >= thresh[0]) & (abssobelxy <= thresh[1])] = 1
     return binary_output
 
-def hls_select(image_hsv):
+def hsv_select(image_hsv):
     i_h = image_hsv[:,:,0]
     i_s = image_hsv[:,:,1]
     i_v = image_hsv[:,:,2]
@@ -145,7 +149,7 @@ def apply_thresholds(img):
     img_hsv = cv2.cvtColor(img, cv2.COLOR_RGB2HSV)
     
     stage_1 = apply_stage_1(img_hsv)
-    stage_2 = hls_select(img_hsv)
+    stage_2 = hsv_select(img_hsv)
     
     # hsv is generally better overall. x/y only on certain occasions.
     res = (stage_1 * 72) + (stage_2 * 182) # lot of trials, got this. hsv is prominent, but xy sobel is when hsv is not working.

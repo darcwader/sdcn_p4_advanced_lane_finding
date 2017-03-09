@@ -204,15 +204,15 @@ class Lane:
         self.left.previous_fit.append(self.left.current_fit)
         if len(self.left.previous_fit) > last_n:
             self.left.previous_fit = self.left.previous_fit[1:]
-        self.l_best_fit = np.average(self.left.previous_fit, axis=0)
+        self.left.best_fit = np.average(self.left.previous_fit, axis=0)
         
         self.right.previous_fit.append(self.right.current_fit)
         if len(self.right.previous_fit) > last_n:
             self.right.previous_fit = self.right.previous_fit[1:]
-        self.r_best_fit = np.average(self.right.previous_fit, axis=0)
+        self.right.best_fit = np.average(self.right.previous_fit, axis=0)
 
-        self.left.current_fit = self.l_best_fit
-        self.right.current_fit = self.r_best_fit
+        self.left.current_fit = self.left.best_fit
+        self.right.current_fit = self.right.best_fit
 
     
     def draw_curvature(self, img):
@@ -245,6 +245,8 @@ class Lane:
         cv2.putText(img, "Radius Left:{0:.2f}m".format(self.left.radius_of_curvature), (10,50), cv2.FONT_HERSHEY_PLAIN, 2, 255)
         cv2.putText(img, "Radius Right:{0:.2f}m".format(self.right.radius_of_curvature), (10,100), cv2.FONT_HERSHEY_PLAIN, 2, 255)
         # Example values: 632.1 m    626.2 m
+
+        self.draw_lane_deviation(img)
         return img
 
 
@@ -267,3 +269,18 @@ class Lane:
         cv2.fillPoly(color_warp, np.int_([pts]), (0,255, 0))
         return color_warp
         
+    def draw_lane_deviation(self, img):
+        ## Compute intercepts
+        img_size = img.shape[0:2]
+        left_bot = img_size[0] * self.left.current_fit[0]**2 + img_size[0]*self.left.current_fit[1] + self.left.current_fit[2]
+        right_bot = img_size[0] * self.right.current_fit[0]**2 + img_size[0]*self.right.current_fit[1] + self.right.current_fit[2]
+        
+        ## Compute center location
+        val_center = (left_bot+right_bot)/2.0
+        
+        ## Compute lane offset
+        dist_offset = val_center - img_size[1]/2
+        dist_offset = np.round(dist_offset/2.81362,2)
+        str_offset = 'Lane deviation: ' + str(dist_offset) + ' cm.'
+
+        cv2.putText(img, str_offset, (10,150), cv2.FONT_HERSHEY_PLAIN, 2, 255)

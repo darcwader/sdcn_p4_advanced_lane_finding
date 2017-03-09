@@ -1,0 +1,184 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <meta http-equiv="Content-Style-Type" content="text/css" />
+  <meta name="generator" content="pandoc" />
+  <title></title>
+  <style type="text/css">code{white-space: pre;}</style>
+</head>
+<body>
+<p><strong>Advanced Lane Finding Project</strong></p>
+<p>The goals / steps of this project are the following:</p>
+<ul>
+<li>Compute the camera calibration matrix and distortion coefficients given a set of chessboard images.</li>
+<li>Apply a distortion correction to raw images.</li>
+<li>Use color transforms, gradients, etc., to create a thresholded binary image.</li>
+<li>Apply a perspective transform to rectify binary image (&quot;birds-eye view&quot;).</li>
+<li>Detect lane pixels and fit to find the lane boundary.</li>
+<li>Determine the curvature of the lane and vehicle position with respect to center.</li>
+<li>Warp the detected lane boundaries back onto the original image.</li>
+<li>Output visual display of the lane boundaries and numerical estimation of lane curvature and vehicle position.</li>
+</ul>
+<h2 id="rubric-points"><a href="https://review.udacity.com/#!/rubrics/571/view">Rubric</a> Points</h2>
+<h3 id="here-i-will-consider-the-rubric-points-individually-and-describe-how-i-addressed-each-point-in-my-implementation.">Here I will consider the rubric points individually and describe how I addressed each point in my implementation.</h3>
+<h3 id="writeup-readme">Writeup / README</h3>
+<h4 id="provide-a-writeup-readme-that-includes-all-the-rubric-points-and-how-you-addressed-each-one.-you-can-submit-your-writeup-as-markdown-or-pdf.-here-is-a-template-writeup-for-this-project-you-can-use-as-a-guide-and-a-starting-point.">1. Provide a Writeup / README that includes all the rubric points and how you addressed each one. You can submit your writeup as markdown or pdf. <a href="https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md">Here</a> is a template writeup for this project you can use as a guide and a starting point.</h4>
+<h3 id="camera-calibration">Camera Calibration</h3>
+<h4 id="briefly-state-how-you-computed-the-camera-matrix-and-distortion-coefficients.-provide-an-example-of-a-distortion-corrected-calibration-image.">1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.</h4>
+<p>The code for this is in <code>calibrate.py</code>. this saves the calibration to a pickle file. method to load is in <code>methods.py</code> along with other helper routines.</p>
+<p>First all points are created using <code>np.mgrid</code> and <code>cv2.findChessboardCorners</code> is called on each image in <code>camera_cal/*.jpg</code> files.</p>
+<p>All points are then collected into <code>objpoints</code> and <code>imgpoints</code>. the images are also plotted to show make sure it finds everything properly.</p>
+<h3 id="pipeline-single-images">Pipeline (single images)</h3>
+<h4 id="provide-an-example-of-a-distortion-corrected-image.">1. Provide an example of a distortion-corrected image.</h4>
+<p>To test if this is fine run <code>run_1_undistort.py</code> is run which saves file into <code>output_images/1_undistor.py</code></p>
+<div class="figure">
+<img src="./output_images/1_undistorted.png" title="Undistorted" alt="Undistorted" />
+<p class="caption">Undistorted</p>
+</div>
+<p>Apply to a lane image to undistort</p>
+<div class="figure">
+<img src="./output_images/1b_undistort.png" title="Sample Undistorted" alt="Alt text" />
+<p class="caption">Alt text</p>
+</div>
+<h4 id="describe-how-and-identify-where-in-your-code-you-used-color-transforms-gradients-or-other-methods-to-create-a-thresholded-binary-image.-provide-an-example-of-a-binary-image-result.">2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image. Provide an example of a binary image result.</h4>
+<p><em>Transform</em></p>
+<p><code>methods.py</code> contains function <code>load_transforms</code> which loads transform matrix. <code>fast_unwarp_lane</code> and <code>fast_warp_lane</code> then use the loaded matrix to perform the warp and unwarping.</p>
+<p><em>Thresholding</em></p>
+<p>This was the hardest part of the entire project, took weeks.</p>
+<p>Unsuccessful tries:</p>
+<ul>
+<li>I tried sobel x filter , sobel y filter, xy filter, dir filter on RGB image. Although it went well on image, further down the pipeline this failed badly.</li>
+<li>I used HSV color space and it produced nice results along with sobelx, xy, dir in RGB space. but realized it also failed in some cases.</li>
+</ul>
+<p>Successful</p>
+<ul>
+<li>I took some snapshots of track and applied filter on then instead of test images.</li>
+<li>I converted to HSV only, RGB was just not helpful</li>
+<li>on HSV filter out higher thresholds to isolate lane lines</li>
+<li>on HSV filter also apply weights to H, S, V to get some addional information</li>
+<li>threshold the above two to get a binary lane</li>
+</ul>
+<p>Code is in <code>methods.py</code></p>
+<p>I used a combination of color and gradient thresholds to generate a binary image (thresholding steps at lines # through # in <code>another_file.py</code>). Here's an example of my output for this step. (note: this is not actually from one of the test images)</p>
+<p>method that applies the threshold is <code>apply_thresholds</code> and returns a unwarped binary file.</p>
+<div class="figure">
+<img src="./output_images/2_threshold.png" title="Theshold" alt="alt text" />
+<p class="caption">alt text</p>
+</div>
+<h4 id="describe-how-and-identify-where-in-your-code-you-performed-a-perspective-transform-and-provide-an-example-of-a-transformed-image.">3. Describe how (and identify where in your code) you performed a perspective transform and provide an example of a transformed image.</h4>
+<p>The transform is performed by using the folowing</p>
+<pre><code>src = np.float32([[  585.0-10,  460.0],
+                [ 0.0,  720.0],
+                [ 1280.0,  720.0],
+                [ 695.0+10,  460.0]])
+
+dst = np.float32([[320, 0],
+                [320, 720],
+                [960, 720],
+                [960, 0]])</code></pre>
+<p>This resulted in the following source and destination points:</p>
+<table>
+<thead>
+<tr class="header">
+<th align="center">Source</th>
+<th align="center">Destination</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="center">575.0, 460</td>
+<td align="center">320, 0</td>
+</tr>
+<tr class="even">
+<td align="center">0, 720</td>
+<td align="center">320, 720</td>
+</tr>
+<tr class="odd">
+<td align="center">1280, 720</td>
+<td align="center">960, 720</td>
+</tr>
+<tr class="even">
+<td align="center">705.0, 460</td>
+<td align="center">960, 0</td>
+</tr>
+</tbody>
+</table>
+<p>I verified that my perspective transform was working as expected. here is the warped lane drawing.</p>
+<div class="figure">
+<img src="./output_images/3_warping.png" title="Warping" alt="alt text" />
+<p class="caption">alt text</p>
+</div>
+<h4 id="describe-how-and-identify-where-in-your-code-you-identified-lane-line-pixels-and-fit-their-positions-with-a-polynomial">4. Describe how (and identify where in your code) you identified lane-line pixels and fit their positions with a polynomial?</h4>
+<p>the code for lane and all details are in <code>methods_sliding_window.py</code></p>
+<p>we have a <code>Lane</code> class.</p>
+<p>In this we find the lane lines by using histogram of thresolded image. We find the base by finding the max</p>
+<pre><code>leftx_base = np.argmax(histogram[:midpoint])
+rightx_base = np.argmax(histogram[midpoint:]) + midpoint</code></pre>
+<p>Then we divide into small strips and calculate the highest values in within a certain margin.</p>
+<p>resulting windows if plotted would show.</p>
+<div class="figure">
+<img src="./output_images/4_process.png" title="Sliding Window" alt="alt text" />
+<p class="caption">alt text</p>
+</div>
+<p>This is only done for the first frame.</p>
+<p>Successive frames we use <code>sliding_next</code> methods in <code>Lane</code> class. Which uses the previous fits to calculate the next frames.</p>
+<pre><code>nonzero = binary_warped.nonzero()
+nonzeroy = np.array(nonzero[0])
+nonzerox = np.array(nonzero[1])
+margin = 100
+self.left.lane_inds = ((nonzerox &gt; (self.left.current_fit[0]*(nonzeroy**2) + self.left.current_fit[1]*nonzeroy + self.left.current_fit[2] - margin)) &amp; (nonzerox &lt; (self.left.current_fit[0]*(nonzeroy**2) + self.left.current_fit[1]*nonzeroy + self.left.current_fit[2] + margin)))
+self.right.lane_inds = ((nonzerox &gt; (self.right.current_fit[0]*(nonzeroy**2) + self.right.current_fit[1]*nonzeroy + self.right.current_fit[2] - margin)) &amp; (nonzerox &lt; (self.right.current_fit[0]*(nonzeroy**2) + self.right.current_fit[1]*nonzeroy + self.right.current_fit[2] + margin)))  
+
+# Again, extract left and right line pixel positions
+leftx = nonzerox[self.left.lane_inds]
+lefty = nonzeroy[self.left.lane_inds] 
+rightx = nonzerox[self.right.lane_inds]
+righty = nonzeroy[self.right.lane_inds]
+# Fit a second order polynomial to each
+self.left.current_fit = np.polyfit(lefty, leftx, 2)
+self.right.current_fit = np.polyfit(righty, rightx, 2)</code></pre>
+<h4 id="describe-how-and-identify-where-in-your-code-you-calculated-the-radius-of-curvature-of-the-lane-and-the-position-of-the-vehicle-with-respect-to-center.">5. Describe how (and identify where in your code) you calculated the radius of curvature of the lane and the position of the vehicle with respect to center.</h4>
+<p>radius of curvature is calculated using <code>draw_curvature</code> methods in <code>Lane</code> class.</p>
+<pre><code>y_eval = np.max(img.shape[0]-1)
+left_curverad = ((1 + (2*self.left.current_fit[0]*y_eval + self.left.current_fit[1])**2)**1.5) / np.absolute(2*self.left.current_fit[0])
+right_curverad = ((1 + (2*self.right.current_fit[0]*y_eval + self.right.current_fit[1])**2)**1.5) / np.absolute(2*self.right.current_fit[0])
+
+ploty = np.linspace(0, img.shape[0]-1, img.shape[0] )
+leftx = self.left.current_fit[0]*ploty**2 + self.left.current_fit[1]*ploty + self.left.current_fit[2]
+rightx = self.right.current_fit[0]*ploty**2 + self.right.current_fit[1]*ploty + self.right.current_fit[2]
+
+# Define conversions in x and y from pixels space to meters
+ym_per_pix = 30/720 # meters per pixel in y dimension
+xm_per_pix = 3.7/700 # meters per pixel in x dimension
+
+# Fit new polynomials to x,y in world space
+left_fit_cr = np.polyfit(ploty*ym_per_pix, leftx*xm_per_pix, 2)
+right_fit_cr = np.polyfit(ploty*ym_per_pix, rightx*xm_per_pix, 2)
+
+# Calculate the new radii of curvature
+self.left.radius_of_curvature = ((1 + (2*left_fit_cr[0]*y_eval*ym_per_pix + left_fit_cr[1])**2)**1.5) / np.absolute(2*left_fit_cr[0])
+self.right.radius_of_curvature  = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + right_fit_cr[1])**2)**1.5) / np.absolute(2*right_fit_cr[0])</code></pre>
+<h4 id="provide-an-example-image-of-your-result-plotted-back-down-onto-the-road-such-that-the-lane-area-is-identified-clearly.">6. Provide an example image of your result plotted back down onto the road such that the lane area is identified clearly.</h4>
+<p>This is done in <code>draw_projection</code> in <code>Lane</code> class from <code>methods_sliding_window.py</code></p>
+<div class="figure">
+<img src="./output_images/6_lane.png" title="Projection" alt="alt text" />
+<p class="caption">alt text</p>
+</div>
+<hr />
+<h3 id="pipeline-video">Pipeline (video)</h3>
+<h4 id="provide-a-link-to-your-final-video-output.-your-pipeline-should-perform-reasonably-well-on-the-entire-project-video-wobbly-lines-are-ok-but-no-catastrophic-failures-that-would-cause-the-car-to-drive-off-the-road.">1. Provide a link to your final video output. Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).</h4>
+<p>The lane line is smoothed over 5 best fit's to remove jitters.</p>
+<p>Here's a <a href="./output_images/project_video_final.mp4">link to my video result</a></p>
+<hr />
+<h3 id="discussion">Discussion</h3>
+<h4 id="briefly-discuss-any-problems-issues-you-faced-in-your-implementation-of-this-project.-where-will-your-pipeline-likely-fail-what-could-you-do-to-make-it-more-robust">1. Briefly discuss any problems / issues you faced in your implementation of this project. Where will your pipeline likely fail? What could you do to make it more robust?</h4>
+<ul>
+<li>the lane lines histogram can fail if the curvature is too high.</li>
+<li>brightness vairations are not recorded well</li>
+<li>the the surface of road is more brighter the thresholding can fail and not find the lanes</li>
+<li>average of lane lines might not be good enough fit.</li>
+<li>the left and right lane movement is not related in my algorithm. convolution was a better method, maybe that should be adopted for better performance.</li>
+</ul>
+</body>
+</html>

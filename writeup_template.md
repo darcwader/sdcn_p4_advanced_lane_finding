@@ -14,7 +14,6 @@ The goals / steps of this project are the following:
 
 [//]: # (Image References)
 
-[image0]: ./camera_cal/calibration1.jpg "Distorted"
 [image1]: ./output_images/1_undistorted.png "Undistorted"
 [image2]: ./output_images/2_threshold.png "Theshold"
 [image3]: ./output_images/3_warping.png "Warping"
@@ -24,7 +23,6 @@ The goals / steps of this project are the following:
 ## [Rubric](https://review.udacity.com/#!/rubrics/571/view) Points
 ### Here I will consider the rubric points individually and describe how I addressed each point in my implementation.  
 
----
 ### Writeup / README
 
 #### 1. Provide a Writeup / README that includes all the rubric points and how you addressed each one.  You can submit your writeup as markdown or pdf.  [Here](https://github.com/udacity/CarND-Advanced-Lane-Lines/blob/master/writeup_template.md) is a template writeup for this project you can use as a guide and a starting point.  
@@ -47,10 +45,9 @@ All points are then collected into `objpoints` and `imgpoints`. the images are a
 
 To test if this is fine run `run_1_undistort.py` is run which saves file into `output_images/1_undistor.py`
 
-![Distorted][image0]
 ![Undistorted][image1]
 
-####2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
+#### 2. Describe how (and identify where in your code) you used color transforms, gradients or other methods to create a thresholded binary image.  Provide an example of a binary image result.
 
 *Transform*
 
@@ -62,15 +59,17 @@ To test if this is fine run `run_1_undistort.py` is run which saves file into `o
 This was the hardest part of the entire project, took weeks.  
 
 Unsuccessful tries: 
-* I tried sobel x filter , sobel y filter, xy filter, dir filter on RGB image. Although it went well on image, further down the pipeline this failed badly.
-* I used HSV color space and it produced nice results along with sobelx, xy, dir in RGB space. but realized it also failed in some cases.
+
+   * I tried sobel x filter , sobel y filter, xy filter, dir filter on RGB image. Although it went well on image, further down the pipeline this failed badly.
+   * I used HSV color space and it produced nice results along with sobelx, xy, dir in RGB space. but realized it also failed in some cases.
 
 Successful
-* I took some snapshots of track and applied filter on then instead of test images.
-* I converted to HSV only, RGB was just not helpful
-* on HSV filter out higher thresholds to isolate lane lines
-* on HSV filter also apply weights to H, S, V to get some addional information
-* threshold the above two to get a binary lane
+
+   * I took some snapshots of track and applied filter on then instead of test images.
+   * I converted to HSV only, RGB was just not helpful
+   * on HSV filter out higher thresholds to isolate lane lines
+   * on HSV filter also apply weights to H, S, V to get some addional information
+   * threshold the above two to get a binary lane
 
 Code is in `methods.py`
 
@@ -123,7 +122,9 @@ leftx_base = np.argmax(histogram[:midpoint])
 rightx_base = np.argmax(histogram[midpoint:]) + midpoint
 ```
 
+Then we divide into small strips and calculate the highest values in within a certain margin.
 
+resulting windows if plotted would show.
 
 ![alt text][image4]
 
