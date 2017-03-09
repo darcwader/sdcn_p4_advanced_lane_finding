@@ -132,7 +132,7 @@ self.right.lane_inds = ((nonzerox &gt; (self.right.current_fit[0]*(nonzeroy**2) 
 
 # Again, extract left and right line pixel positions
 leftx = nonzerox[self.left.lane_inds]
-lefty = nonzeroy[self.left.lane_inds] 
+lefty = nonzeroy[self.left.lane_inds]
 rightx = nonzerox[self.right.lane_inds]
 righty = nonzeroy[self.right.lane_inds]
 # Fit a second order polynomial to each
@@ -168,7 +168,12 @@ self.right.radius_of_curvature  = ((1 + (2*right_fit_cr[0]*y_eval*ym_per_pix + r
 <hr />
 <h3 id="pipeline-video">Pipeline (video)</h3>
 <h4 id="provide-a-link-to-your-final-video-output.-your-pipeline-should-perform-reasonably-well-on-the-entire-project-video-wobbly-lines-are-ok-but-no-catastrophic-failures-that-would-cause-the-car-to-drive-off-the-road.">1. Provide a link to your final video output. Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).</h4>
-<p>The lane line is smoothed over 5 best fit's to remove jitters.</p>
+<p>There are few measures taken to make the lane detection robust.</p>
+<ol style="list-style-type: decimal">
+<li>The lane is smoothed over last_n = 5 good fits.</li>
+<li>New coefficients are calcualated based on current_fit and then we calculate root mean square error with previous_fit</li>
+<li>if the error is too high then we take up previous_fit and drop this current_fit</li>
+</ol>
 <p>Here's a <a href="./output_images/project_video_final.mp4">link to my video result</a></p>
 <hr />
 <h3 id="discussion">Discussion</h3>

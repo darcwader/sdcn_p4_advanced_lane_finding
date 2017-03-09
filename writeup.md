@@ -33,7 +33,7 @@ The goals / steps of this project are the following:
 #### 1. Briefly state how you computed the camera matrix and distortion coefficients. Provide an example of a distortion corrected calibration image.
 
 The code for this is in `calibrate.py`. this saves the calibration to a pickle file.
-method to load is in `methods.py` along with other helper routines. 
+method to load is in `methods.py` along with other helper routines.
 
 First all points are created using `np.mgrid` and `cv2.findChessboardCorners` is called on each image in `camera_cal/*.jpg` files.
 
@@ -60,11 +60,11 @@ Apply to a lane image to undistort
 `methods.py` contains function `load_transforms` which loads transform matrix. `fast_unwarp_lane` and `fast_warp_lane` then use the loaded matrix to perform the warp and unwarping.
 
 
-*Thresholding* 
+*Thresholding*
 
 This was the hardest part of the entire project, took weeks.  
 
-Unsuccessful tries: 
+Unsuccessful tries:
 
    * I tried sobel x filter , sobel y filter, xy filter, dir filter on RGB image. Although it went well on image, further down the pipeline this failed badly.
    * I used HSV color space and it produced nice results along with sobelx, xy, dir in RGB space. but realized it also failed in some cases.
@@ -104,9 +104,9 @@ dst = np.float32([[320, 0],
 
 This resulted in the following source and destination points:
 
-| Source        | Destination   | 
-|:-------------:|:-------------:| 
-| 575.0, 460    | 320, 0        | 
+| Source        | Destination   |
+|:-------------:|:-------------:|
+| 575.0, 460    | 320, 0        |
 | 0, 720        | 320, 720      |
 | 1280, 720     | 960, 720      |
 | 705.0, 460    | 960, 0        |
@@ -119,9 +119,9 @@ I verified that my perspective transform was working as expected. here is the wa
 
 the code for lane and all details are in `methods_sliding_window.py`
 
-we have a `Lane` class. 
+we have a `Lane` class.
 
-In this we find the lane lines by using histogram of thresolded image. We find the base by finding the max 
+In this we find the lane lines by using histogram of thresolded image. We find the base by finding the max
 
 ```
 leftx_base = np.argmax(histogram[:midpoint])
@@ -149,7 +149,7 @@ self.right.lane_inds = ((nonzerox > (self.right.current_fit[0]*(nonzeroy**2) + s
 
 # Again, extract left and right line pixel positions
 leftx = nonzerox[self.left.lane_inds]
-lefty = nonzeroy[self.left.lane_inds] 
+lefty = nonzeroy[self.left.lane_inds]
 rightx = nonzerox[self.right.lane_inds]
 righty = nonzeroy[self.right.lane_inds]
 # Fit a second order polynomial to each
@@ -196,7 +196,11 @@ This is done in `draw_projection` in `Lane` class from `methods_sliding_window.p
 ####1. Provide a link to your final video output.  Your pipeline should perform reasonably well on the entire project video (wobbly lines are ok but no catastrophic failures that would cause the car to drive off the road!).
 
 
-The lane line is smoothed over 5 best fit's to remove jitters.
+There are few measures taken to make the lane detection robust.
+
+1. The lane is smoothed over last_n = 5 good fits.
+2. New coefficients are calcualated based on current_fit and then we calculate root mean square error with previous_fit
+3. if the error is too high then we take up previous_fit and drop this current_fit
 
 Here's a [link to my video result](./output_images/project_video_final.mp4)
 
@@ -206,11 +210,8 @@ Here's a [link to my video result](./output_images/project_video_final.mp4)
 
 ####1. Briefly discuss any problems / issues you faced in your implementation of this project.  Where will your pipeline likely fail?  What could you do to make it more robust?
 
-* the lane lines histogram can fail if the curvature is too high. 
+* the lane lines histogram can fail if the curvature is too high.
 * brightness vairations are not recorded well
 * the the surface of road is more brighter the thresholding can fail and not find the lanes
-* average of lane lines might not be good enough fit. 
+* average of lane lines might not be good enough fit.
 * the left and right lane movement is not related in my algorithm. convolution was a better method, maybe that should be adopted for better performance.
-
-
-
